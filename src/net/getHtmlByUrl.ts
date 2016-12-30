@@ -3,7 +3,7 @@ import * as Request from 'request';
 /**
  * 获取页面html
  */
-export let getHtmlByUrl = async function (requestUrl: string, refererUrl: string = '') {
+export let getHtmlByUrl = async function(requestUrl: string, refererUrl: string = '') {
   if (refererUrl == '') {
     refererUrl = requestUrl;
   }
@@ -13,7 +13,7 @@ export let getHtmlByUrl = async function (requestUrl: string, refererUrl: string
       "Referer": refererUrl
     }
   };
-  return new Promise(resolve => {
+  return new Promise<string>(resolve => {
     Request(requestOptions, (error, response, body) => resolve(body));
   });
 }
