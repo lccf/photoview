@@ -1,0 +1,18 @@
+{
+    "compilerOptions": {
+        "module": "commonjs",
+        "target": "es6",
+        "noImplicitAny": false,
+        "sourceMap": true,
+        "removeComments": false,
+        "lib": [
+            "es6",
+            "dom",
+            "scripthost",
+            "es2015.generator",
+            "es2015.promise"
+        ],
+        "sourceRoot": "src",
+        "outDir": "app"
+    }
+}
