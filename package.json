@@ -4,7 +4,9 @@
   "author": "lcc",
   "license": "BSD",
   "description": "photo download and manage",
+  "main": "main.js",
   "scripts": {
+    "postinstall": "electron-rebuild",
     "start": "concurrently 'tsc -w' 'electron .'"
   },
   "devDependencies": {
