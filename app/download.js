@@ -9,7 +9,7 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
 };
 const fs = require("fs");
 const url = require("url");
-const $ = require("jquery");
+const cheerio = require("cheerio");
 const net_1 = require("./net");
 const model_1 = require("./model");
 class Capture {
@@ -22,10 +22,11 @@ class Capture {
     getHtml(pageUrl = '') {
         return __awaiter(this, void 0, void 0, function* () {
             let saveHtml = false;
-            let pageHtml = this.pageHtml;
+            let pageHtml = '';
             if (!pageUrl) {
                 pageUrl = this.url;
                 saveHtml = true;
+                pageHtml = this.pageHtml;
             }
             if (!pageHtml) {
                 pageHtml = yield net_1.getHtmlByUrl(pageUrl, this.refererUrl);
@@ -36,58 +37,58 @@ class Capture {
             return new Promise(resolve => resolve(pageHtml));
         });
     }
-    parseImage() {
-        let imageUrls = [];
-        let imageIdMatch = this.url.match(/work\/([^=]+)/);
-        let imageId = 'image_id_' + (new Date());
-        if (imageIdMatch != null) {
-            imageId = imageIdMatch[1];
-        }
-        this.getHtml().then(html => {
-            let $imgs = $(html).find('.workShow li');
-            $imgs.each(function () {
-                let $img = $(this);
-                let $imgLink = $img.find('.image-link');
-                let originUrl = '';
-                if ($imgLink.length) {
-                    originUrl = $imgLink.attr('href').split('=')[1];
-                }
-                imageUrls.push({
-                    imageId: imageId,
-                    img: $img.find('img').attr('src'),
-                    origin: originUrl
-                });
-            });
-            this.downloadImage(imageUrls);
-        });
-    }
-    downloadImage(urls) {
-        try {
-            fs.accessSync(`./data`);
-        }
-        catch (e) {
-            fs.mkdirSync(`./data`);
-        }
-        try {
-            fs.accessSync(`./data/${urls[0].imageId}`);
-        }
-        catch (e) {
-            fs.mkdirSync(`./data/${urls[0].imageId}`);
-        }
-        let downloadQueue = net_1.DownloadQueue.getInstance();
-        for (let img of urls) {
-            let imageId = img.imageId;
-            let imageUrl = img.origin || img.img;
-            let refererUrl = this.url;
-            downloadQueue.download({ imageId, imageUrl, refererUrl }, function (state, data) {
-                console.log(data);
-            });
-        }
-    }
-    parsePageImage(url) {
-        this.url = url;
-        this.parseImage();
-    }
+    // parseImage() {
+    //   let imageUrls: Array<{ img: string, origin: string, imageId: string }> = [];
+    //   let imageIdMatch = this.url.match(/work\/([^=]+)/);
+    //   let imageId: string = 'image_id_' + (new Date());
+    //   if (imageIdMatch != null) {
+    //     imageId = imageIdMatch[1];
+    //   }
+    //   this.getHtml().then(html => {
+    //     let $imgs = $(html).find('.workShow li');
+    //     $imgs.each(function () {
+    //       let $img = $(this);
+    //       let $imgLink = $img.find('.image-link');
+    //       let originUrl: string = '';
+    //       if ($imgLink.length) {
+    //         originUrl = $imgLink.attr('href').split('=')[1];
+    //       }
+    //       imageUrls.push({
+    //         imageId: imageId,
+    //         img: $img.find('img').attr('src'),
+    //         origin: originUrl
+    //       });
+    //     });
+    //     this.downloadImage(imageUrls);
+    //   });
+    // }
+    // downloadImage(urls: Array<{ img: string, origin: string, imageId: string }>) {
+    //   try {
+    //     fs.accessSync(`./data`);
+    //   }
+    //   catch (e) {
+    //     fs.mkdirSync(`./data`);
+    //   }
+    //   try {
+    //     fs.accessSync(`./data/${urls[0].imageId}`);
+    //   }
+    //   catch (e) {
+    //     fs.mkdirSync(`./data/${urls[0].imageId}`);
+    //   }
+    //   let downloadQueue = DownloadQueue.getInstance();
+    //   for (let img of urls) {
+    //     let imageId = img.imageId;
+    //     let imageUrl = img.origin || img.img;
+    //     let refererUrl = this.url;
+    //     downloadQueue.download({ imageId, imageUrl, refererUrl }, function (state, data) {
+    //       console.log(data);
+    //     });
+    //   }
+    // }
+    // parsePageImage(url: string) {
+    //   this.url = url;
+    //   this.parseImage();
+    // }
     parsePageImageByUrl(pageUrl) {
         return __awaiter(this, void 0, void 0, function* () {
             let imageUrls = [];
@@ -97,9 +98,9 @@ class Capture {
                 imageId = imageIdMatch[1];
             }
             let html = yield this.getHtml(pageUrl);
-            let $imgs = $(html).find('.workShow li');
-            $imgs.each(function () {
-                let $img = $(this);
+            let $imgs = cheerio('.workShow li', html);
+            $imgs.each((index, img) => {
+                let $img = cheerio(img);
                 let $imgLink = $img.find('.image-link');
                 let originUrl = '';
                 if ($imgLink.length) {
@@ -117,10 +118,10 @@ class Capture {
     parseAllPageUrl() {
         return __awaiter(this, void 0, void 0, function* () {
             let html = yield this.getHtml();
-            let $pages = $(html).find('.workShow .bigPage a');
+            let $pages = cheerio('.workShow .bigPage a', html);
             let urls = [this.url];
             $pages.each((index, tag) => {
-                let $tag = $(tag);
+                let $tag = cheerio(tag);
                 if ($tag.length && !$tag.attr('class') && $tag.attr('href')
                     && $tag.attr('href').match(/^\/work.*\.html$/) != null) {
                     urls.push(url.resolve(this.url, $tag.attr('href')));
@@ -174,8 +175,9 @@ class Capture {
     parsePageInfo() {
         return __awaiter(this, void 0, void 0, function* () {
             let html = yield this.getHtml();
-            let $html = $(html);
-            let author = $html.find('.userName:eq(0) a').text().replace(/^\s*|\s*$/g, '');
+            let $html = cheerio.load(html).root();
+            debugger;
+            let author = $html.find('.userName').eq(0).find('a').text().replace(/^\s*|\s*$/g, '');
             let title = $html.find('.workTitle').text().replace(/^\s*|原创作品：|\s*$/g, '');
             let desc = $html.find('.workInfor').html().replace(/^\s*|\s*$/g, '');
             return new Promise(resolve => resolve({ title, author, desc, url: this.url }));
@@ -210,9 +212,10 @@ exports.test = () => {
     // capture.parsePageImage('http://www.zcool.com.cn/work/ZMTk1ODk0Njg=.html');
     // capture.parsePageImage('http://www.zcool.com.cn/work/ZMTk0ODUwMDQ=/2.html');
     // capture.hasGroup();
+    // capture.parseAllPageUrl().then(urls => console.log(urls));
     // capture.parseAllPageImage().then(imageUrls => console.log(imageUrls));
-    // capture.downloadAllPageImage().then(data => console.log(data));
-    capture.parsePageInfo().then(pageInfo => console.log(pageInfo));
+    capture.downloadAllPageImage().then(data => console.log(data));
+    // capture.parsePageInfo().then(pageInfo => console.log(pageInfo));
     // capture.addGroup();
 };
 //# sourceMappingURL=download.js.map
