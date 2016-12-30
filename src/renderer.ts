@@ -1,1 +1,3 @@
-console.log('rednerer.js');
+import { test } from './download';
+
+test();
