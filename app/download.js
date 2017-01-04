@@ -10,6 +10,7 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
 const fs = require("fs");
 const url = require("url");
 const cheerio = require("cheerio");
+const util_1 = require("./util");
 const net_1 = require("./net");
 const model_1 = require("./model");
 class Capture {
@@ -37,58 +38,6 @@ class Capture {
             return new Promise(resolve => resolve(pageHtml));
         });
     }
-    // parseImage() {
-    //   let imageUrls: Array<{ img: string, origin: string, imageId: string }> = [];
-    //   let imageIdMatch = this.url.match(/work\/([^=]+)/);
-    //   let imageId: string = 'image_id_' + (new Date());
-    //   if (imageIdMatch != null) {
-    //     imageId = imageIdMatch[1];
-    //   }
-    //   this.getHtml().then(html => {
-    //     let $imgs = $(html).find('.workShow li');
-    //     $imgs.each(function () {
-    //       let $img = $(this);
-    //       let $imgLink = $img.find('.image-link');
-    //       let originUrl: string = '';
-    //       if ($imgLink.length) {
-    //         originUrl = $imgLink.attr('href').split('=')[1];
-    //       }
-    //       imageUrls.push({
-    //         imageId: imageId,
-    //         img: $img.find('img').attr('src'),
-    //         origin: originUrl
-    //       });
-    //     });
-    //     this.downloadImage(imageUrls);
-    //   });
-    // }
-    // downloadImage(urls: Array<{ img: string, origin: string, imageId: string }>) {
-    //   try {
-    //     fs.accessSync(`./data`);
-    //   }
-    //   catch (e) {
-    //     fs.mkdirSync(`./data`);
-    //   }
-    //   try {
-    //     fs.accessSync(`./data/${urls[0].imageId}`);
-    //   }
-    //   catch (e) {
-    //     fs.mkdirSync(`./data/${urls[0].imageId}`);
-    //   }
-    //   let downloadQueue = DownloadQueue.getInstance();
-    //   for (let img of urls) {
-    //     let imageId = img.imageId;
-    //     let imageUrl = img.origin || img.img;
-    //     let refererUrl = this.url;
-    //     downloadQueue.download({ imageId, imageUrl, refererUrl }, function (state, data) {
-    //       console.log(data);
-    //     });
-    //   }
-    // }
-    // parsePageImage(url: string) {
-    //   this.url = url;
-    //   this.parseImage();
-    // }
     parsePageImageByUrl(pageUrl) {
         return __awaiter(this, void 0, void 0, function* () {
             let imageUrls = [];
@@ -218,4 +167,29 @@ exports.test = () => {
     // capture.parsePageInfo().then(pageInfo => console.log(pageInfo));
     // capture.addGroup();
 };
+class Download {
+    render() {
+        $('#app').html(`
+      <div>
+        <h2>组图下载</h2>
+        <p>组图地址: <input style="width: 400px;" type="text" id="pageUrl" value="http://www.zcool.com.cn/work/ZMTk1NDU2MjQ=.html" />
+        <p>引用地址: <input style="width: 400px;" type="text" id="refererUrl" value="http://www.zcool.com.cn/works/33!0!!0!0!200!1!1!!!/" />
+        <p><button type="button">download</button>
+        <div id="downloadInfo"></div>
+      </div>
+    `);
+        this.bindEvent();
+    }
+    bindEvent() {
+        let $el = $('#app');
+        $el.find('button').on('click', function () {
+            let pageUrl = util_1.trim($('#pageUrl').val());
+            let refererUrl = util_1.trim($('#refererUrl').val());
+            if (pageUrl != '') {
+                this.download(pageUrl, refererUrl);
+            }
+        });
+    }
+}
+exports.Download = Download;
 //# sourceMappingURL=download.js.map

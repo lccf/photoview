@@ -1,3 +1,4 @@
-import { test } from './download';
+import { Download } from './download';
 
-test();
+let down = new Download();
+down.render();
