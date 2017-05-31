@@ -4,21 +4,27 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
         function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
         function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
         function step(result) { result.done ? resolve(result.value) : new P(function (resolve) { resolve(result.value); }).then(fulfilled, rejected); }
-        step((generator = generator.apply(thisArg, _arguments)).next());
+        step((generator = generator.apply(thisArg, _arguments || [])).next());
     });
 };
+Object.defineProperty(exports, "__esModule", { value: true });
 const fs = require("fs");
 const url = require("url");
 const cheerio = require("cheerio");
 const util_1 = require("./util");
 const net_1 = require("./net");
 const model_1 = require("./model");
+var fetchPageModel;
+(function (fetchPageModel) {
+    fetchPageModel[fetchPageModel["nextPage"] = 0] = "nextPage";
+})(fetchPageModel || (fetchPageModel = {}));
 class Capture {
     constructor() {
         // public url: string = 'http://www.zcool.com.cn/work/ZMTkxNTgxNjA=.html'
         this.url = 'http://www.zcool.com.cn/work/ZMTk1NDU2MjQ=.html';
         this.refererUrl = 'http://www.zcool.com.cn/works/33!0!!0!0!200!1!1!!!/';
         this.pageHtml = '';
+        this.pageModel = fetchPageModel.nextPage;
     }
     getHtml(pageUrl = '') {
         return __awaiter(this, void 0, void 0, function* () {
@@ -112,7 +118,7 @@ class Capture {
                 let imageUrl = img.origin || img.img;
                 let refererUrl = this.url;
                 allTask.push(new Promise(resolve => {
-                    downloadQueue.download({ imageId, imageUrl, refererUrl }, function (state, data) {
+                    downloadQueue.addQueue({ imageId, imageUrl, refererUrl }, function (state, data) {
                         console.log(data);
                         resolve(data);
                     });
@@ -130,6 +136,25 @@ class Capture {
             let title = $html.find('.workTitle').text().replace(/^\s*|原创作品：|\s*$/g, '');
             let desc = $html.find('.workInfor').html().replace(/^\s*|\s*$/g, '');
             return new Promise(resolve => resolve({ title, author, desc, url: this.url }));
+        });
+    }
+    startByUrl(pageUrl, refererUrl) {
+        return __awaiter(this, void 0, void 0, function* () {
+            if (!refererUrl) {
+                refererUrl = pageUrl;
+            }
+            this.url = pageUrl;
+            this.refererUrl = refererUrl;
+            let pageQueue = net_1.FetchPageQueue.getInstance();
+            let param = {
+                pageUrl,
+                refererUrl
+            };
+            new Promise(resolve => pageQueue.addQueue({ pageUrl, refererUrl }, (state, data) => resolve(data)))
+                .then((html) => this.parsePageInfo());
+            // pageQueue.addQueue({ pageUrl, refererUrl }, (state, data) => {
+            //   console.log(data);
+            // });
         });
     }
     hasGroup() {

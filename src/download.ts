@@ -4,8 +4,12 @@ import * as request from 'request';
 import * as cheerio from 'cheerio';
 
 import { trim } from './util';
-import { getHtmlByUrl, DownloadQueue } from './net';
+import { getHtmlByUrl, DownloadQueue, FetchPageQueue } from './net';
 import { Group, Image } from './model';
+
+enum fetchPageModel {
+  nextPage
+}
 
 export class Capture {
   // public url: string = 'http://www.zcool.com.cn/work/ZMTkxNTgxNjA=.html'
@@ -13,6 +17,8 @@ export class Capture {
   public refererUrl: string = 'http://www.zcool.com.cn/works/33!0!!0!0!200!1!1!!!/';
 
   public pageHtml: string = '';
+
+  public pageModel: fetchPageModel = fetchPageModel.nextPage;
 
   async getHtml(pageUrl: string = '') {
     let saveHtml = false;
@@ -102,7 +108,7 @@ export class Capture {
       let refererUrl = this.url;
       allTask.push(
         new Promise(resolve => {
-          downloadQueue.download({ imageId, imageUrl, refererUrl }, function (state, data) {
+          downloadQueue.addQueue({ imageId, imageUrl, refererUrl }, function (state, data) {
             console.log(data);
             resolve(data);
           });
@@ -120,6 +126,25 @@ export class Capture {
     let title = $html.find('.workTitle').text().replace(/^\s*|原创作品：|\s*$/g, '');
     let desc = $html.find('.workInfor').html().replace(/^\s*|\s*$/g, '');
     return new Promise<{title: string, author: string, desc: string, url: string}>(resolve => resolve({title, author, desc, url: this.url}));
+  }
+
+  async startByUrl(pageUrl: string, refererUrl?: string) {
+    if (!refererUrl) {
+      refererUrl = pageUrl;
+    }
+    this.url = pageUrl;
+    this.refererUrl = refererUrl;
+
+    let pageQueue = FetchPageQueue.getInstance();
+    let param = {
+      pageUrl,
+      refererUrl
+    }
+    new Promise(resolve => pageQueue.addQueue({ pageUrl, refererUrl }, (state, data) => resolve(data)))
+    .then((html) => this.parsePageInfo());
+    // pageQueue.addQueue({ pageUrl, refererUrl }, (state, data) => {
+    //   console.log(data);
+    // });
   }
 
   hasGroup() {

@@ -1,4 +1,5 @@
 "use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
 const connect_1 = require("../connect");
 const image_1 = require("./image");
 class Group extends connect_1.bookshelf.Model {
@@ -13,6 +14,5 @@ class Group extends connect_1.bookshelf.Model {
         return this.hasMany(image_1.default);
     }
 }
-Object.defineProperty(exports, "__esModule", { value: true });
 exports.default = Group;
 //# sourceMappingURL=group.js.map

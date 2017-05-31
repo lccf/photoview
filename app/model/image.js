@@ -1,4 +1,5 @@
 "use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
 const connect_1 = require("../connect");
 const group_1 = require("./group");
 class Image extends connect_1.bookshelf.Model {
@@ -15,6 +16,5 @@ class Image extends connect_1.bookshelf.Model {
 }
 Image.small = 1;
 Image.large = 2;
-Object.defineProperty(exports, "__esModule", { value: true });
 exports.default = Image;
 //# sourceMappingURL=image.js.map

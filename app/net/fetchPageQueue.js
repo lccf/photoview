@@ -1,11 +1,8 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 const basicQueue_1 = require("./basicQueue");
-const downloadImage_1 = require("./downloadImage");
-/**
- * 下载队列类
- */
-class DownloadQueue extends basicQueue_1.BasicQueue {
+const getHtmlByUrl_1 = require("./getHtmlByUrl");
+class FetchPageQueue extends basicQueue_1.BasicQueue {
     constructor() {
         super(...arguments);
         /**
@@ -15,7 +12,7 @@ class DownloadQueue extends basicQueue_1.BasicQueue {
     }
     static getInstance() {
         if (!this._instance) {
-            this._instance = new DownloadQueue();
+            this._instance = new FetchPageQueue();
         }
         return this._instance;
     }
@@ -29,8 +26,8 @@ class DownloadQueue extends basicQueue_1.BasicQueue {
         this.currQueue += 1;
         let task = this.waitQueue.shift();
         let _self = this;
-        downloadImage_1.downloadImage(task.param).then(this.next.bind(this, task.callback, 1), this.next.bind(this, task.callback, 0));
+        getHtmlByUrl_1.getHtmlByUrl(task.param).then(this.next.bind(this, task.callback, 1), this.next.bind(this, task.callback, 0));
     }
 }
-exports.DownloadQueue = DownloadQueue;
-//# sourceMappingURL=downloadQueue.js.map
+exports.FetchPageQueue = FetchPageQueue;
+//# sourceMappingURL=fetchPageQueue.js.map
