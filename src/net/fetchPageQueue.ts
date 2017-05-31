@@ -1,14 +1,11 @@
 import { BasicQueue } from './basicQueue';
-import { downloadImage } from './downloadImage';
+import { getHtmlByUrl } from './getHtmlByUrl';
 
-/**
- * 下载队列类
- */
-export class DownloadQueue extends BasicQueue {
-  static _instance: DownloadQueue;
-  static getInstance(): DownloadQueue {
+export class FetchPageQueue extends BasicQueue {
+  static _instance: FetchPageQueue;
+  static getInstance(): FetchPageQueue {
     if (!this._instance) {
-      this._instance = new DownloadQueue();
+      this._instance = new FetchPageQueue();
     }
 
     return this._instance;
@@ -29,6 +26,6 @@ export class DownloadQueue extends BasicQueue {
     this.currQueue += 1;
     let task = this.waitQueue.shift();
     let _self = this;
-    downloadImage(task.param).then(this.next.bind(this, task.callback, 1), this.next.bind(this, task.callback, 0));
+    getHtmlByUrl(task.param).then(this.next.bind(this, task.callback, 1), this.next.bind(this, task.callback, 0));
   }
 }
