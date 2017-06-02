@@ -23,7 +23,7 @@ export class DownloadQueue extends BasicQueue {
    * 开始下载任务
    */
   start() {
-    if (this.currQueue >= this.maxQueue || !this.waitQueue.length) {
+    if (this.currQueue >= this.maxQueue) {
       return;
     }
     this.currQueue += 1;

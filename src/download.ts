@@ -37,14 +37,17 @@ export class Capture {
     return new Promise<string>(resolve => resolve(pageHtml));
   }
 
-  async parsePageImageByUrl(pageUrl: string) {
+  async parseNextPageUrl(html: string) {
+
+  }
+
+  async parsePageImageByHtml(html: string) {
     let imageUrls: Array<{ img: string, origin: string, imageId: string }> = [];
     let imageIdMatch = this.url.match(/work\/([^=]+)/);
     let imageId: string = 'image_id_' + (new Date());
     if (imageIdMatch != null) {
       imageId = imageIdMatch[1];
     }
-    let html = await this.getHtml(pageUrl);
     let $imgs = cheerio('.workShow li', html);
     $imgs.each((index, img) => {
       let $img = cheerio(img);
@@ -60,6 +63,11 @@ export class Capture {
       });
     });
     return new Promise<{ img: string, origin: string, imageId: string }[]>(resolve => resolve(imageUrls));
+  }
+
+  async parsePageImageByUrl(pageUrl: string) {
+    let html = await this.getHtml(pageUrl);
+    return this.parsePageImageByHtml(html);
   }
 
   async parseAllPageUrl() {
@@ -186,6 +194,9 @@ export const test = () => {
 }
 
 export class Download {
+  download(pageUrl: string, refererUrl: string) {
+
+  }
   render() {
     $('#app').html(`
       <div>
