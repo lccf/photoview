@@ -70,6 +70,38 @@ export class Capture {
     return this.parsePageImageByHtml(html);
   }
 
+  async downloadImageByPageHtml(html: string) {
+    let images = await this.parsePageImageByHtml(html);
+    try {
+      fs.accessSync(`./data`);
+    }
+    catch (e) {
+      fs.mkdirSync(`./data`);
+    }
+    try {
+      fs.accessSync(`./data/${images[0].imageId}`);
+    }
+    catch (e) {
+      fs.mkdirSync(`./data/${images[0].imageId}`);
+    }
+    let downloadQueue = DownloadQueue.getInstance();
+    let allTask: Array<Promise<string>> = [];
+    for (let img of images) {
+      let imageId = img.imageId;
+      let imageUrl = img.origin || img.img;
+      let refererUrl = this.url;
+      allTask.push(
+        new Promise(resolve => {
+          downloadQueue.addQueue({ imageId, imageUrl, refererUrl }, function (state, data) {
+            console.log(data);
+            resolve(data);
+          });
+        })
+      ); 
+    }
+    return new Promise<string>(resolve => Promise.all(allTask).then(data => resolve('success')));
+  }
+
   async parseAllPageUrl() {
     let html = await this.getHtml();
     let $pages = cheerio('.workShow .bigPage a', html);
@@ -148,8 +180,12 @@ export class Capture {
       pageUrl,
       refererUrl
     }
+    let _self = this;
     new Promise(resolve => pageQueue.addQueue({ pageUrl, refererUrl }, (state, data) => resolve(data)))
-    .then((html) => this.parsePageInfo());
+    .then((html: string) => {
+      _self.downloadImageByPageHtml(html);
+      _self.parseNextPageUrl(html);
+    });
     // pageQueue.addQueue({ pageUrl, refererUrl }, (state, data) => {
     //   console.log(data);
     // });
