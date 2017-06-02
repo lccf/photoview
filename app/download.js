@@ -11,7 +11,6 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const fs = require("fs");
 const url = require("url");
 const cheerio = require("cheerio");
-const util_1 = require("./util");
 const net_1 = require("./net");
 const model_1 = require("./model");
 var fetchPageModel;
@@ -44,7 +43,18 @@ class Capture {
             return new Promise(resolve => resolve(pageHtml));
         });
     }
-    parsePageImageByUrl(pageUrl) {
+    parseNextPageUrl(html, pageUrl) {
+        return __awaiter(this, void 0, void 0, function* () {
+            let $nextPage = cheerio('.laypage_next', html);
+            let nextPageUrl = '';
+            if ($nextPage.length) {
+                nextPageUrl = url.resolve(this.url, $nextPage.attr('href'));
+                this.startByUrl(nextPageUrl, pageUrl);
+            }
+            // return new Promise<string>((resolve) => resolve(nextPageUrl));
+        });
+    }
+    parsePageImageByHtml(html) {
         return __awaiter(this, void 0, void 0, function* () {
             let imageUrls = [];
             let imageIdMatch = this.url.match(/work\/([^=]+)/);
@@ -52,8 +62,7 @@ class Capture {
             if (imageIdMatch != null) {
                 imageId = imageIdMatch[1];
             }
-            let html = yield this.getHtml(pageUrl);
-            let $imgs = cheerio('.workShow li', html);
+            let $imgs = cheerio('.light-slide-content', html);
             $imgs.each((index, img) => {
                 let $img = cheerio(img);
                 let $imgLink = $img.find('.image-link');
@@ -68,6 +77,43 @@ class Capture {
                 });
             });
             return new Promise(resolve => resolve(imageUrls));
+        });
+    }
+    parsePageImageByUrl(pageUrl) {
+        return __awaiter(this, void 0, void 0, function* () {
+            let html = yield this.getHtml(pageUrl);
+            return this.parsePageImageByHtml(html);
+        });
+    }
+    downloadImageByPageHtml(html) {
+        return __awaiter(this, void 0, void 0, function* () {
+            let images = yield this.parsePageImageByHtml(html);
+            try {
+                fs.accessSync(`./data`);
+            }
+            catch (e) {
+                fs.mkdirSync(`./data`);
+            }
+            try {
+                fs.accessSync(`./data/${images[0].imageId}`);
+            }
+            catch (e) {
+                fs.mkdirSync(`./data/${images[0].imageId}`);
+            }
+            let downloadQueue = net_1.DownloadQueue.getInstance();
+            let allTask = [];
+            for (let img of images) {
+                let imageId = img.imageId;
+                let imageUrl = img.origin || img.img;
+                let refererUrl = this.url;
+                allTask.push(new Promise(resolve => {
+                    downloadQueue.addQueue({ imageId, imageUrl, refererUrl }, function (state, data) {
+                        console.log(data);
+                        resolve(data);
+                    });
+                }));
+            }
+            return new Promise(resolve => Promise.all(allTask).then(data => resolve('success')));
         });
     }
     parseAllPageUrl() {
@@ -131,7 +177,6 @@ class Capture {
         return __awaiter(this, void 0, void 0, function* () {
             let html = yield this.getHtml();
             let $html = cheerio.load(html).root();
-            debugger;
             let author = $html.find('.userName').eq(0).find('a').text().replace(/^\s*|\s*$/g, '');
             let title = $html.find('.workTitle').text().replace(/^\s*|原创作品：|\s*$/g, '');
             let desc = $html.find('.workInfor').html().replace(/^\s*|\s*$/g, '');
@@ -150,8 +195,12 @@ class Capture {
                 pageUrl,
                 refererUrl
             };
+            let _self = this;
             new Promise(resolve => pageQueue.addQueue({ pageUrl, refererUrl }, (state, data) => resolve(data)))
-                .then((html) => this.parsePageInfo());
+                .then((html) => {
+                _self.downloadImageByPageHtml(html).then(console.log);
+                _self.parseNextPageUrl(html, _self.url);
+            });
             // pageQueue.addQueue({ pageUrl, refererUrl }, (state, data) => {
             //   console.log(data);
             // });
@@ -193,27 +242,41 @@ exports.test = () => {
     // capture.addGroup();
 };
 class Download {
+    download(pageUrl, refererUrl) {
+        let capture = new Capture();
+        capture.startByUrl(pageUrl, refererUrl);
+    }
     render() {
-        $('#app').html(`
+        let html = `
       <div>
         <h2>组图下载</h2>
-        <p>组图地址: <input style="width: 400px;" type="text" id="pageUrl" value="http://www.zcool.com.cn/work/ZMTk1NDU2MjQ=.html" />
-        <p>引用地址: <input style="width: 400px;" type="text" id="refererUrl" value="http://www.zcool.com.cn/works/33!0!!0!0!200!1!1!!!/" />
+        <p>组图地址: <input style="width: 400px;" type="text" id="pageUrl" value="http://www.zcool.com.cn/work/ZMjIxMTI0MDg=.html" />
+        <p>引用地址: <input style="width: 400px;" type="text" id="refererUrl" value="http://www.zcool.com.cn/discover/33!0!0!0!0!!!!2!-1!1" />
         <p><button type="button">download</button>
         <div id="downloadInfo"></div>
       </div>
-    `);
+    `;
+        document.querySelector('#app').innerHTML = html;
         this.bindEvent();
     }
     bindEvent() {
-        let $el = $('#app');
-        $el.find('button').on('click', function () {
-            let pageUrl = util_1.trim($('#pageUrl').val());
-            let refererUrl = util_1.trim($('#refererUrl').val());
+        // let $el = $('#app');
+        let btn = document.querySelector('#app button');
+        let _self = this;
+        btn.addEventListener('click', function () {
+            let pageUrl = document.querySelector('#pageUrl').value;
+            let refererUrl = document.querySelector('#refererUrl').value;
             if (pageUrl != '') {
-                this.download(pageUrl, refererUrl);
+                _self.download(pageUrl, refererUrl);
             }
         });
+        // $el.find('button').on('click', function() {
+        //   let pageUrl = trim($('#pageUrl').val());
+        //   let refererUrl = trim($('#refererUrl').val());
+        //   if (pageUrl != '') {
+        //     this.download(pageUrl, refererUrl);
+        //   }
+        // });
     }
 }
 exports.Download = Download;

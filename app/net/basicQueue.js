@@ -42,7 +42,12 @@ class BasicQueue {
             callback(state, data);
         }
         this.currQueue -= 1;
-        this.start();
+        if (!this.waitQueue.length) {
+            this.subjectHandle.complete();
+        }
+        else {
+            this.start();
+        }
     }
     /**
      * 注册事件
