@@ -43,10 +43,8 @@ class BasicQueue {
         }
         this.currQueue -= 1;
         if (!this.waitQueue.length) {
-            this.subjectHandle.complete();
-        }
-        else {
             this.start();
+            // this.subjectHandle.complete();
         }
     }
     /**
@@ -54,6 +52,9 @@ class BasicQueue {
      */
     subscribe(subscribeParam) {
         this.subjectHandle.subscribe(subscribeParam);
+    }
+    complete() {
+        this.subjectHandle.complete();
     }
 }
 exports.BasicQueue = BasicQueue;

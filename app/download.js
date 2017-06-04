@@ -44,15 +44,16 @@ class Capture {
         });
     }
     parseNextPageUrl(html, pageUrl) {
-        return __awaiter(this, void 0, void 0, function* () {
-            let $nextPage = cheerio('.laypage_next', html);
-            let nextPageUrl = '';
-            if ($nextPage.length) {
-                nextPageUrl = url.resolve(this.url, $nextPage.attr('href'));
-                this.startByUrl(nextPageUrl, pageUrl);
-            }
-            // return new Promise<string>((resolve) => resolve(nextPageUrl));
-        });
+        let $nextPage = cheerio('.laypage_next', html);
+        let nextPageUrl = '';
+        debugger;
+        if ($nextPage.length) {
+            nextPageUrl = url.resolve(this.url, $nextPage.attr('href'));
+            this.startByUrl(nextPageUrl, pageUrl, true);
+        }
+        else {
+            net_1.FetchPageQueue.getInstance().complete();
+        }
     }
     parsePageImageByHtml(html) {
         return __awaiter(this, void 0, void 0, function* () {
@@ -183,7 +184,7 @@ class Capture {
             return new Promise(resolve => resolve({ title, author, desc, url: this.url }));
         });
     }
-    startByUrl(pageUrl, refererUrl) {
+    startByUrl(pageUrl, refererUrl, isChild) {
         return __awaiter(this, void 0, void 0, function* () {
             if (!refererUrl) {
                 refererUrl = pageUrl;
@@ -196,14 +197,29 @@ class Capture {
                 refererUrl
             };
             let _self = this;
-            new Promise(resolve => pageQueue.addQueue({ pageUrl, refererUrl }, (state, data) => resolve(data)))
-                .then((html) => {
-                _self.downloadImageByPageHtml(html).then(console.log);
-                _self.parseNextPageUrl(html, _self.url);
-            });
-            // pageQueue.addQueue({ pageUrl, refererUrl }, (state, data) => {
-            //   console.log(data);
-            // });
+            if (!isChild) {
+                return new Promise(resolve => {
+                    pageQueue.subscribe({
+                        next: function () {
+                            console.log('pageQueue next');
+                        },
+                        complete: function () {
+                            debugger;
+                            resolve('download success!');
+                        }
+                    });
+                    pageQueue.addQueue({ pageUrl, refererUrl }, (state, data) => {
+                        _self.downloadImageByPageHtml(data).then(console.log);
+                        _self.parseNextPageUrl(data, _self.url);
+                    });
+                });
+            }
+            else {
+                pageQueue.addQueue({ pageUrl, refererUrl }, (state, data) => {
+                    _self.downloadImageByPageHtml(data).then(console.log);
+                    _self.parseNextPageUrl(data, _self.url);
+                });
+            }
         });
     }
     hasGroup() {
@@ -244,7 +260,7 @@ exports.test = () => {
 class Download {
     download(pageUrl, refererUrl) {
         let capture = new Capture();
-        capture.startByUrl(pageUrl, refererUrl);
+        capture.startByUrl(pageUrl, refererUrl).then(msg => console.log);
     }
     render() {
         let html = `
@@ -258,6 +274,14 @@ class Download {
     `;
         document.querySelector('#app').innerHTML = html;
         this.bindEvent();
+        // let subject = new Subject<string>();
+        // subject.subscribe({
+        //   next: v => console.log(v),
+        //   complete: () => console.log('complete');
+        // });
+        // subject.next('a');
+        // subject.next('b');
+        // subject.complete();
     }
     bindEvent() {
         // let $el = $('#app');

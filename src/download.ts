@@ -2,6 +2,7 @@ import * as fs from 'fs';
 import * as url from 'url';
 import * as request from 'request';
 import * as cheerio from 'cheerio';
+import { Subject } from 'rxjs';
 
 import { trim } from './util';
 import { getHtmlByUrl, DownloadQueue, FetchPageQueue } from './net';
@@ -37,14 +38,17 @@ export class Capture {
     return new Promise<string>(resolve => resolve(pageHtml));
   }
 
-  async parseNextPageUrl(html: string, pageUrl: string) {
+  parseNextPageUrl(html: string, pageUrl: string) {
     let $nextPage = cheerio('.laypage_next', html);
     let nextPageUrl: string = '';
+    debugger;
     if ($nextPage.length) {
       nextPageUrl = url.resolve(this.url, $nextPage.attr('href'));
-      this.startByUrl(nextPageUrl, pageUrl);
+      this.startByUrl(nextPageUrl, pageUrl, true);
     }
-    // return new Promise<string>((resolve) => resolve(nextPageUrl));
+    else {
+      FetchPageQueue.getInstance().complete();
+    }
   }
 
   async parsePageImageByHtml(html: string) {
@@ -173,7 +177,7 @@ export class Capture {
     return new Promise<{title: string, author: string, desc: string, url: string}>(resolve => resolve({title, author, desc, url: this.url}));
   }
 
-  async startByUrl(pageUrl: string, refererUrl?: string) {
+  async startByUrl(pageUrl: string, refererUrl?: string, isChild?: boolean) {
     if (!refererUrl) {
       refererUrl = pageUrl;
     }
@@ -186,14 +190,30 @@ export class Capture {
       refererUrl
     }
     let _self = this;
-    new Promise(resolve => pageQueue.addQueue({ pageUrl, refererUrl }, (state, data) => resolve(data)))
-    .then((html: string) => {
-      _self.downloadImageByPageHtml(html).then(console.log);
-      _self.parseNextPageUrl(html, _self.url);
-    });
-    // pageQueue.addQueue({ pageUrl, refererUrl }, (state, data) => {
-    //   console.log(data);
-    // });
+    
+    if (!isChild) {
+      return new Promise<string>(resolve => {
+        pageQueue.subscribe({
+          next: function() {
+            console.log('pageQueue next');
+          },
+          complete: function() {
+            debugger;
+            resolve('download success!')
+          }
+        });
+        pageQueue.addQueue({ pageUrl, refererUrl }, (state, data) => {
+          _self.downloadImageByPageHtml(data).then(console.log);
+          _self.parseNextPageUrl(data, _self.url);
+        });
+      })
+    }
+    else {
+      pageQueue.addQueue({ pageUrl, refererUrl }, (state, data) => {
+        _self.downloadImageByPageHtml(data).then(console.log);
+        _self.parseNextPageUrl(data, _self.url);
+      });
+    }
   }
 
   hasGroup() {
@@ -237,7 +257,7 @@ export const test = () => {
 export class Download {
   download(pageUrl: string, refererUrl: string) {
     let capture = new Capture();
-    capture.startByUrl(pageUrl, refererUrl);
+    capture.startByUrl(pageUrl, refererUrl).then(msg => console.log);
   }
   render() {
     let html:string = `
@@ -251,6 +271,16 @@ export class Download {
     `;
     document.querySelector('#app').innerHTML = html;
     this.bindEvent();
+
+    // let subject = new Subject<string>();
+    // subject.subscribe({
+    //   next: v => console.log(v),
+    //   complete: () => console.log('complete');
+    // });
+
+    // subject.next('a');
+    // subject.next('b');
+    // subject.complete();
   }
 
   bindEvent() {

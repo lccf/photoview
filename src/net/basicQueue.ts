@@ -3,7 +3,7 @@ export class BasicQueue {
   /**
    * 事件队列
    */
-  protected subjectHandle = new Subject();
+  protected subjectHandle = new Subject<any>();
   /**
    * 最大同时下载数量
    */
@@ -45,9 +45,8 @@ export class BasicQueue {
     }
     this.currQueue -= 1;
     if (!this.waitQueue.length) {
-      this.subjectHandle.complete();
-    } else {
       this.start();
+      // this.subjectHandle.complete();
     }
   }
 
@@ -56,5 +55,9 @@ export class BasicQueue {
    */
   subscribe(subscribeParam: any) {
     this.subjectHandle.subscribe(subscribeParam);
+  }
+
+  complete() {
+    this.subjectHandle.complete();
   }
 }

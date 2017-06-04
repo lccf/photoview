@@ -27,6 +27,13 @@ export class FetchPageQueue extends BasicQueue {
     let task = this.waitQueue.shift();
     let _self = this;
     let {pageUrl, refererUrl} = task.param;
-    getHtmlByUrl(pageUrl, refererUrl).then(this.next.bind(this, task.callback, 1), this.next.bind(this, task.callback, 0));
+    getHtmlByUrl(pageUrl, refererUrl).then(
+      (html: string) => {
+        this.subjectHandle.next(html);
+        this.next(task.callback, 1, html)
+        // this.next.bind(this, task.callback, 1)()
+      },
+      // this.next.bind(this, task.callback, 1),
+      this.next.bind(this, task.callback, 0));
   }
 }
